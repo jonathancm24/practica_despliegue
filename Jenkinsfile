@@ -83,6 +83,15 @@ pipeline {
                 }
             }
         }
+
+        // Solo si Jenkins tiene acceso a Docker
+        stage('Docker Build') {
+            steps {
+                script {
+                    sh 'docker build -t comments-app .'
+                }
+            }
+        }
     }
 
     post {
