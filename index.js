@@ -1,18 +1,21 @@
 const express = require('express');
 const fs = require('fs');
+const path = require('path');
 const app = express();
 const PORT = 3000;
 
-// Archivo JSON que actúa como base de datos
-const DB_FILE = './users.json';
+// Archivos JSON que actúan como base de datos
+const USERS_FILE = './users.json';
+const COMMENTS_FILE = './comments.json';
 
-// Middleware para manejar JSON
+// Middleware para manejar JSON y archivos estáticos
 app.use(express.json());
+app.use(express.static('public'));
 
-// Función para leer el archivo JSON
-const readDatabase = () => {
+// Función para leer archivos JSON
+const readDatabase = (filename) => {
     try {
-        const data = fs.readFileSync(DB_FILE, 'utf8');
+        const data = fs.readFileSync(filename, 'utf8');
         return JSON.parse(data);
     } catch (err) {
         // Si el archivo no existe, retorna un array vacío
@@ -20,29 +23,36 @@ const readDatabase = () => {
     }
 };
 
-// Función para escribir en el archivo JSON
-const writeDatabase = (data) => {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
+// Función para escribir en archivos JSON
+const writeDatabase = (filename, data) => {
+    fs.writeFileSync(filename, JSON.stringify(data, null, 2), 'utf8');
 };
 
-// CRUD de usuarios
+// Ruta principal - servir la página de comentarios
 app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// API Status
+app.get('/api/status', (req, res) => {
     const msg = {
-        message: 'Servidor en ejecucion en el puerto 3000',
-        status: 200
+        message: 'API de Comentarios funcionando correctamente',
+        status: 200,
+        timestamp: new Date().toISOString()
     }
     res.json(msg);
 });
 
+// CRUD de usuarios
 // 1. Obtener todos los usuarios
 app.get('/users', (req, res) => {
-    const users = readDatabase();
+    const users = readDatabase(USERS_FILE);
     res.json(users);
 });
 
 // 2. Crear un nuevo usuario
 app.post('/users', (req, res) => {
-    const users = readDatabase();
+    const users = readDatabase(USERS_FILE);
     const newUser = req.body;
 
     if (!newUser.id || !newUser.name || !newUser.email) {
@@ -55,14 +65,14 @@ app.post('/users', (req, res) => {
     }
 
     users.push(newUser);
-    writeDatabase(users);
+    writeDatabase(USERS_FILE, users);
 
     res.status(201).json({ message: 'User created successfully', user: newUser });
 });
 
 // 3. Actualizar un usuario
 app.put('/users/:id', (req, res) => {
-    const users = readDatabase();
+    const users = readDatabase(USERS_FILE);
     const userId = req.params.id;
     const updatedUser = req.body;
 
@@ -73,14 +83,14 @@ app.put('/users/:id', (req, res) => {
     }
 
     users[userIndex] = { ...users[userIndex], ...updatedUser };
-    writeDatabase(users);
+    writeDatabase(USERS_FILE, users);
 
     res.json({ message: 'User updated successfully', user: users[userIndex] });
 });
 
 // 4. Eliminar un usuario
 app.delete('/users/:id', (req, res) => {
-    const users = readDatabase();
+    const users = readDatabase(USERS_FILE);
     const userId = req.params.id;
 
     const filteredUsers = users.filter((user) => user.id !== userId);
@@ -89,16 +99,15 @@ app.delete('/users/:id', (req, res) => {
         return res.status(404).json({ error: 'User not found' });
     }
 
-    writeDatabase(filteredUsers);
+    writeDatabase(USERS_FILE, filteredUsers);
 
     res.json({ message: 'User deleted successfully' });
 });
 
 // 5. Buscar un usuario
 app.get('/users/:id', (req, res) => {
-    const users = readDatabase();
+    const users = readDatabase(USERS_FILE);
     const userId = req.params.id;
-    const updatedUser = req.body;
 
     const userIndex = users.findIndex((user) => user.id === userId);
 
@@ -111,7 +120,70 @@ app.get('/users/:id', (req, res) => {
     res.json({ user });
 });
 
-// Iniciar el servidor
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor corriendo en http://0.0.0.0:${PORT}`);
+// CRUD de Comentarios
+// 1. Obtener todos los comentarios
+app.get('/api/comments', (req, res) => {
+    const comments = readDatabase(COMMENTS_FILE);
+    res.json(comments);
 });
+
+// 2. Crear un nuevo comentario
+app.post('/api/comments', (req, res) => {
+    const comments = readDatabase(COMMENTS_FILE);
+    const { author, message } = req.body;
+
+    if (!author || !message) {
+        return res.status(400).json({ error: 'Author and message are required' });
+    }
+
+    if (author.trim().length < 2) {
+        return res.status(400).json({ error: 'Author name must be at least 2 characters' });
+    }
+
+    if (message.trim().length < 5) {
+        return res.status(400).json({ error: 'Message must be at least 5 characters' });
+    }
+
+    const newComment = {
+        id: Date.now().toString(),
+        author: author.trim(),
+        message: message.trim(),
+        timestamp: new Date().toISOString()
+    };
+
+    comments.push(newComment);
+    writeDatabase(COMMENTS_FILE, comments);
+
+    res.status(201).json({ message: 'Comment created successfully', comment: newComment });
+});
+
+// 3. Eliminar un comentario
+app.delete('/api/comments/:id', (req, res) => {
+    const comments = readDatabase(COMMENTS_FILE);
+    const commentId = req.params.id;
+
+    const filteredComments = comments.filter((comment) => comment.id !== commentId);
+
+    if (filteredComments.length === comments.length) {
+        return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    writeDatabase(COMMENTS_FILE, filteredComments);
+
+    res.json({ message: 'Comment deleted successfully' });
+});
+
+// 4. Contar comentarios
+app.get('/api/comments/count', (req, res) => {
+    const comments = readDatabase(COMMENTS_FILE);
+    res.json({ count: comments.length });
+});
+
+// Iniciar el servidor
+if (require.main === module) {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Servidor corriendo en http://0.0.0.0:${PORT}`);
+    });
+}
+
+module.exports = app;

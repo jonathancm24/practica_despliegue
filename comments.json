@@ -1,0 +1,32 @@
+[
+  {
+    "id": "1754582264228",
+    "author": "Test User",
+    "message": "Este es un comentario de prueba",
+    "timestamp": "2025-08-07T15:57:44.228Z"
+  },
+  {
+    "id": "1754582264250",
+    "author": "Usuario 1",
+    "message": "Primer comentario de prueba",
+    "timestamp": "2025-08-07T15:57:44.250Z"
+  },
+  {
+    "id": "1754582264254",
+    "author": "Usuario 2",
+    "message": "Segundo comentario de prueba",
+    "timestamp": "2025-08-07T15:57:44.254Z"
+  },
+  {
+    "id": "1754582264259",
+    "author": "Usuario 3",
+    "message": "Tercer comentario de prueba",
+    "timestamp": "2025-08-07T15:57:44.259Z"
+  },
+  {
+    "id": "1754582264303",
+    "author": "User with éñáéíóú",
+    "message": "Mensaje con caracteres especiales: <>\"' & emojis 🚀🎉",
+    "timestamp": "2025-08-07T15:57:44.303Z"
+  }
+]
